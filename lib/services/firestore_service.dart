@@ -9,11 +9,14 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
 
 class FirestoreService {
+  static final FirestoreService _instance = FirestoreService._internal();
+  factory FirestoreService() => _instance;
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _persistenceEnabled = false;
 
-  FirestoreService() {
+  FirestoreService._internal() {
     _enablePersistenceOnce();
   }
 
