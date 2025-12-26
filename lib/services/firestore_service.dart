@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/student.dart';
 import '../models/assignment.dart';
 import '../models/attendance.dart';
+import '../models/teacher.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -41,6 +42,52 @@ class FirestoreService {
       debugPrint('⚠️ Warning: FirestoreService.currentUserId is NULL. Auth state might be transitioning.');
     }
     return uid;
+  }
+
+  // --- Teacher Profile ---
+
+  // Get teacher profile
+  Stream<Teacher?> getTeacherProfile() {
+    if (currentUserId == null) return Stream.value(null);
+    return _db.collection('teachers').doc(currentUserId).snapshots().map((doc) {
+      if (doc.exists) {
+        return Teacher.fromMap(doc.data()!, id: doc.id);
+      }
+      return null;
+    });
+  }
+
+  // Update teacher profile
+  Future<void> updateTeacherProfile(Teacher teacher) async {
+    if (currentUserId == null) return;
+    try {
+      await _db.collection('teachers').doc(currentUserId).set({
+        ...teacher.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      debugPrint('✅ Teacher profile updated');
+    } catch (e) {
+      debugPrint('❌ Error updating teacher profile: $e');
+      rethrow;
+    }
+  }
+
+  // Upload profile image
+  Future<String?> uploadProfileImage(Uint8List bytes, String fileName) async {
+    if (currentUserId == null) return null;
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profiles')
+          .child(currentUserId!)
+          .child(fileName);
+      
+      await ref.putData(bytes);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('❌ Error uploading profile image: $e');
+      return null;
+    }
   }
 
   // --- Students ---

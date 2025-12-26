@@ -5,9 +5,11 @@ import 'assignments_screen.dart';
 import 'attendance_screen.dart';
 import 'students_screen.dart';
 import 'classes_screen.dart';
+import 'profile_screen.dart';
 import '../services/firestore_service.dart';
 import '../providers/theme_provider.dart';
 import '../models/attendance.dart';
+import '../models/teacher.dart';
 import 'package:intl/intl.dart';
 
 
@@ -237,23 +239,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onSelected: (value) async {
               if (value == 'logout') {
                 await FirebaseAuth.instance.signOut();
+              } else if (value == 'profile') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'profile', child: Text('Profile')),
-              const PopupMenuItem(value: 'settings', child: Text('Settings')),
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+              const PopupMenuItem(value: 'profile', child: Row(
+                children: [
+                  Icon(Icons.person_outline, size: 20),
+                  SizedBox(width: 8),
+                  Text('Profile'),
+                ],
+              )),
+              const PopupMenuItem(value: 'settings', child: Row(
+                children: [
+                  Icon(Icons.settings_outlined, size: 20),
+                  SizedBox(width: 8),
+                  Text('Settings'),
+                ],
+              )),
+              const PopupMenuItem(value: 'logout', child: Row(
+                children: [
+                  Icon(Icons.logout, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Logout', style: TextStyle(color: Colors.red)),
+                ],
+              )),
             ],
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Card
-            _buildWelcomeCard(context, userName, user?.email),
+      body: StreamBuilder<Teacher?>(
+        stream: _firestoreService.getTeacherProfile(),
+        builder: (context, teacherSnapshot) {
+          final teacher = teacherSnapshot.data;
+          final displayName = teacher?.name ?? user?.email?.split('@')[0] ?? 'Teacher';
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Card
+                _buildWelcomeCard(context, displayName, teacher),
 
             const SizedBox(height: 25),
 
@@ -294,7 +325,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildClassList(context),
           ],
         ),
-      ),
+      );
+    },
+  ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showClassSelector(context),
         backgroundColor: Colors.blue,
@@ -305,7 +338,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Welcome Card
-  Widget _buildWelcomeCard(BuildContext context, String name, String? email) {
+  Widget _buildWelcomeCard(BuildContext context, String name, Teacher? teacher) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -326,7 +359,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -335,10 +369,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 2,
               ),
             ),
-            child: const Icon(
-              Icons.person,
-              size: 32,
-              color: Colors.white,
+            child: ClipOval(
+              child: teacher?.imageUrl != null
+                  ? Image.network(teacher!.imageUrl!, fit: BoxFit.cover)
+                  : const Icon(
+                      Icons.person,
+                      size: 32,
+                      color: Colors.white,
+                    ),
             ),
           ),
           const SizedBox(width: 20),
@@ -357,7 +395,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  email ?? 'teacher@school.com',
+                  teacher?.email ?? 'teacher@school.com',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withValues(alpha: 0.9),
