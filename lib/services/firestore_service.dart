@@ -11,8 +11,34 @@ import 'dart:typed_data';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _persistenceEnabled = false;
 
-  String? get currentUserId => _auth.currentUser?.uid;
+  FirestoreService() {
+    _enablePersistenceOnce();
+  }
+
+  void _enablePersistenceOnce() {
+    if (_persistenceEnabled) return;
+    try {
+      // Note: Settings must be applied before any other interaction with Firestore
+      _db.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+      _persistenceEnabled = true;
+      debugPrint('✅ Firestore Persistence Enabled in Service');
+    } catch (e) {
+      debugPrint('ℹ️ Firestore Settings already configured: $e');
+    }
+  }
+
+  String? get currentUserId {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      debugPrint('⚠️ Warning: FirestoreService.currentUserId is NULL. Auth state might be transitioning.');
+    }
+    return uid;
+  }
 
   // --- Students ---
 
@@ -118,8 +144,9 @@ class FirestoreService {
         'teacherId': currentUserId,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      debugPrint('✅ Class "$className" registered successfully in Firestore');
     } catch (e) {
-      debugPrint('Error adding class: $e');
+      debugPrint('❌ Error adding class "$className": $e');
     }
   }
 

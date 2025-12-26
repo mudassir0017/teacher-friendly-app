@@ -66,7 +66,7 @@ class AuthWrapper extends StatelessWidget {
     if (user == null) {
       return const LoginScreen();
     } else {
-      return DashboardScreen();
+      return DashboardScreen(uid: user.uid);
     }
   }
 }

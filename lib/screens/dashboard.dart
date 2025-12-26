@@ -14,7 +14,8 @@ import 'package:intl/intl.dart';
 // DashboardScreen
 // DashboardScreen
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final String? uid;
+  const DashboardScreen({super.key, this.uid});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();

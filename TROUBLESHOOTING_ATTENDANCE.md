@@ -53,21 +53,16 @@ Make sure your Firestore rules allow writing to the `attendance` collection:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read/write their own data
-    match /students/{document=**} {
-      allow read, write: if request.auth != null && 
-                         request.auth.uid == resource.data.teacherId;
-    }
     
-    match /assignments/{document=**} {
+    // Core Rule: Allow teachers to manage their OWN data
+    match /{collection}/{docId} {
       allow read, write: if request.auth != null && 
-                         request.auth.uid == resource.data.teacherId;
-    }
-    
-    // IMPORTANT: Add this for attendance
-    match /attendance/{document=**} {
-      allow read, write: if request.auth != null && 
-                         request.auth.uid == resource.data.teacherId;
+        (
+          // For NEW documents being created
+          (request.resource != null && request.resource.data.teacherId == request.auth.uid) ||
+          // For EXISTING documents being read/updated
+          (resource != null && resource.data.teacherId == request.auth.uid)
+        );
     }
   }
 }
